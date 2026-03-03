@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Main Page</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<style>
+    body{
+        background-color: black;
+        color: white;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .header-container {
+        position: relative;
+        margin-top: 20px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .home-button {
+        position: absolute;
+        left: 20px;
+        font-size: 24px;
+        text-decoration: none;
+        color: white; /* 홈 버튼 색상 */
+    }
+
+    .header-title {
+        text-align: center;
+        margin: 0;
+        font-size: 30px; /* 제목 크기 조정 */
+    }
+
+    .auth-button {
+        position: absolute;
+        right: 20px;
+        font-size: 14px;
+        text-decoration: none;
+        color: white;
+        background-color: #007bff;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .item-list {
+        margin-top: 30px;
+        padding: 0 20px;
+    }
+
+    .item {
+        display: flex;
+        align-items: flex-start; /* 이미지와 내용 상단 정렬 */
+        margin-bottom: 30px;
+        border-bottom: 1px solid #333; /* 각 뉴스 항목 구분선 */
+        padding-bottom: 20px;
+    }
+
+    .item:last-child {
+        border-bottom: none; /* 마지막 항목은 구분선 없음 */
+    }
+
+    .item img{
+        width: 160px;
+        height: 160px;
+        margin-right: 20px;
+        object-fit: cover;
+        background-color: #ccc;
+        flex-shrink: 0; /* 이미지 크기 고정 */
+    }
+
+    .item-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* 내용 상단 정렬 */
+    }
+
+    .item-title{
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 8px;
+    }
+
+    .item-title a {
+        color: white;
+        text-decoration: none;
+    }
+    .item-title a:hover {
+        text-decoration: underline;
+    }
+
+    .item-description {
+        font-size: 16px; /* 폰트 크기 조정 */
+        color: #ddd; /* 살짝 연한 색상 */
+        line-height: 1.5; /* 줄 간격 */
+    }
+</style>
+
+<div class="header-container">
+    <a href="/main" class="home-button">🏠</a>
+
+    <h1 class="header-title">📈폴마켓📈</h1>
+
+    <a th:if="${sessionId != null}" href="/mypage" class="auth-button">
+        마이페이지
+    </a>
+
+    <a th:if="${sessionId == null}" href="/loginP" class="auth-button">
+        로그인
+    </a>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <button id="fetchNewsBtn" style="font-size: 16px; padding: 10px 20px;">📡 뉴스 가져오기</button>
+</div>
+
+<div th:replace="~{fragments/nav :: navbar}"></div>
+
+<div class="item-list" id="newsListContainer">
+    <p id="loadingMessage">뉴스 불러오는 중...</p>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/news', function (newsMessage) {
+                showNews(JSON.parse(newsMessage.body));
+            });
+        }, function (error) {
+            console.error('STOMP Error: ' + error);
+            setTimeout(connect, 5000); // 5초 후 재연결
+        });
+    }
+
+    function showNews(newsItems) {
+        const container = document.getElementById('newsListContainer');
+        container.innerHTML = '';
+
+        if (newsItems.length === 0) {
+            container.innerHTML = '<p>현재 뉴스가 없습니다.</p>';
+            return;
+        }
+
+        newsItems.forEach(function (news) {
+            const item = document.createElement('div');
+            item.classList.add('item');
+
+            item.innerHTML = `
+                <img src="/img.png" alt="뉴스 썸네일">
+                <div class="item-content">
+                    <div class="item-title"><a href="${news.link}" target="_blank">${news.title}</a></div>
+                    <div class="item-description">${news.description}</div>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        connect();
+
+        document.getElementById('fetchNewsBtn').addEventListener('click', function () {
+            document.getElementById('newsListContainer').innerHTML = '<p id="loadingMessage">뉴스 불러오는 중...</p>';
+
+            fetch('/api/trigger-news', {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    console.log("뉴스 요청 성공");
+                } else {
+                    console.error("뉴스 요청 실패");
+                }
+            });
+        });
+    });
+
+    window.addEventListener('beforeunload', function () {
+        if (stompClient !== null) {
+            stompClient.disconnect();
+            console.log("Disconnected");
+        }
+    });
+</script>
+
+
+</body>
+</html>

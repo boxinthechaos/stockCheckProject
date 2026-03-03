@@ -1,0 +1,63 @@
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  port: 8080
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/stock
+    username: root
+    password: 1234
+  mail:
+      host: smtp.gmail.com
+      port: 587
+      username: pjsleey12312@gmail.com
+      password: fcyh yqfp enmn zqoz
+      properties:
+        mail:
+          smtp:
+            auth: true
+            starttls:
+              enable: true
+            ssl:
+              trust: smtp.gmail.com # SSL trust 설정
+            connectiontimeout: 5000
+            timeout: 5000
+            writetimeout: 5000
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: false
+
+  spring:
+    resources:
+      static-locations: classpath:/static/, classpath:/static.chart/
+
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+jwt:
+  secret: 12345678901234567890123456789012
+
+

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>기술 주가 차트</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    #controls {
+      text-align: center;
+      margin: 20px;
+    }
+    select, button {
+      margin: 0 10px;
+      padding: 5px 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div style="position: relative; margin-top: 20px; height: 50px;">
+  <!-- 왼쪽 상단 홈 버튼 -->
+  <a href="/main" style="
+    position: absolute;
+    left: 20px;
+    top: 35%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    text-decoration: none;
+  ">🏠</a>
+
+  <!-- 중앙 제목 -->
+  <h1 style="text-align: center; margin: 0;">📈 기술 주가 차트</h1>
+
+  <a th:if="${sessionId != null}" href="/mypage"
+     style="position: absolute; right: 20px; top: 45%; transform: translateY(-50%);
+          font-size: 14px; text-decoration: none; color: white; background-color: #007bff;
+          padding: 8px 15px; border-radius: 4px;">
+    마이페이지
+  </a>
+
+  <a th:if="${sessionId == null}" href="/loginP"
+     style="position: absolute; right: 20px; top: 45%; transform: translateY(-50%);
+          font-size: 14px; text-decoration: none; color: white; background-color: #007bff;
+          padding: 8px 15px; border-radius: 4px;">
+    로그인
+  </a>
+</div>
+
+<div th:replace="~{fragments/nav :: navbar}"></div>
+<div id="controls">
+  <label for="symbolSelect">종목:</label>
+  <select id="symbolSelect">
+    <option value="AAPL">AAPL</option>
+    <option value="AVGO">AVGO</option>
+    <option value="CRM">CRM</option>
+    <option value="CSCO">CSCO</option>
+    <option value="IBM">IBM</option>
+    <option value="INTU">INTU</option>
+    <option value="MSFT">MSFT</option>
+    <option value="NVDA">NVDA</option>
+    <option value="ORCL">ORCL</option>
+    <option value="PLTR">PLTR</option>
+  </select>
+
+  <label for="rangeSelector">기간:</label>
+  <select id="rangeSelector">
+    <option value="1d">오늘</option>
+    <option value="5d">5일</option>
+    <option value="1mo">1개월</option>
+    <option value="3mo">3개월</option>
+    <option value="6mo">6개월</option>
+    <option value="1y">1년</option>
+    <option value="5y">5년</option>
+  </select>
+
+  <button onclick="loadChart()">차트 불러오기</button>
+</div>
+
+<canvas id="chartCanvas" width="1000" height="500"></canvas>
+
+<script>
+  let chart;
+
+  function loadChart() {
+    const symbol = document.getElementById('symbolSelect').value.trim().toUpperCase();
+    const range = document.getElementById('rangeSelector').value;
+
+    let interval;
+    switch (range) {
+      case "1d": interval = "1m"; break;
+      case "5d": interval = "15m"; break;
+      case "1mo": interval = "30m"; break;
+      case "3mo":
+      case "6mo":
+      case "1y": interval = "1d"; break;
+      default: interval = "1d";
+    }
+
+    const url = `/api/chart/${symbol}?range=${range}&interval=${interval}`;
+
+    fetch(url)
+            .then(response => response.json())
+            .then(data => {
+              const labels = data.map(d => d.date);
+              const opens = data.map(d => d.open);
+              const closes = data.map(d => d.close);
+              const highs = data.map(d => d.high);
+              const lows = data.map(d => d.low);
+
+              if (chart) chart.destroy();
+
+              chart = new Chart(document.getElementById('chartCanvas'), {
+                type: 'line',
+                data: {
+                  labels,
+                  datasets: [
+                    { label: `${symbol} Close`, data: closes, borderColor: 'skyblue', fill: false },
+                    { label: `${symbol} Open`, data: opens, borderColor: 'red', fill: false },
+                    { label: `${symbol} High`, data: highs, borderColor: 'orange', fill: false },
+                    { label: `${symbol} Low`, data: lows, borderColor: 'limegreen', fill: false }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  interaction: { mode: 'index', intersect: false },
+                  plugins: {
+                    legend: { labels: { color: 'white' } },
+                    tooltip: {
+                      callbacks: {
+                        label: context => `${context.dataset.label}: ${context.formattedValue}`
+                      }
+                    }
+                  },
+                  scales: {
+                    x: { ticks: { color: 'white' }, grid: { color: '#444' } },
+                    y: { ticks: { color: 'white' }, grid: { color: '#444' } }
+                  }
+                },
+                plugins: [{
+                  id: 'background',
+                  beforeDraw: chart => {
+                    const ctx = chart.canvas.getContext('2d');
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, chart.width, chart.height);
+                    ctx.restore();
+                  }
+                }]
+              });
+            })
+            .catch(error => {
+              console.error('차트 로딩 실패:', error);
+              alert("데이터를 불러오는 데 실패했습니다.");
+            });
+  }
+
+  window.onload = loadChart;
+  document.getElementById('rangeSelector').addEventListener('change', loadChart);
+</script>
+
+</body>
+</html>

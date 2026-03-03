@@ -1,0 +1,34 @@
+<!-- templates/chart/nav.html -->
+<div th:fragment="navbar">
+    <style>
+        nav {
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            margin: 0 10px;
+            padding: 14px 24px;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        nav a:hover {
+            background-color: #575757;
+        }
+    </style>
+    <nav>
+        <a href="/chart/technology">🛠️기술🛠️</a>
+        <a href="/chart/healthcare">💊건강💊</a>
+        <a href="/chart/finance">💰금융💰</a>
+        <a href="/chart/energy">🪫에너지🪫</a>
+        <a href="/chart/basic_materials">🪨기초 산업🪨</a>
+        <a href="/chart/search">🔎차트 검색🔍</a>
+    </nav>
+</div>

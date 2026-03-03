@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>회원가입</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 350px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.7rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .msg {
+      text-align: center;
+      margin-top: 1rem;
+      color: green;
+    }
+
+    .email-verification-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+
+    .email-verification-group input {
+      flex-grow: 1;
+      margin-bottom: 0; /* 기존 input 마진 제거 */
+    }
+
+    .email-verification-group button {
+      width: auto; /* 버튼 너비를 내용에 맞게 조절 */
+      padding: 0.7rem 1rem;
+      white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+    }
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>회원가입</h2>
+  <form id="joinForm">
+    <input type="text" name="username" placeholder="아이디" required>
+    <input type="text" name="email" id="emailInput" placeholder="이메일" required>
+    <div class="email-verification-group">
+      <input type="text" name="verificationCode" id="verificationCodeInput" placeholder="인증 코드" disabled>
+      <button type="button" id="sendVerificationCodeBtn">인증 코드 전송</button>
+    </div>
+    <input type="password" name="password" placeholder="비밀번호" required>
+    <button type="submit" id="joinButton" disabled>가입하기</button>
+  </form>
+  <div class="msg" id="msgBox"></div>
+</div>
+
+<script>
+  const emailInput = document.getElementById('emailInput');
+  const sendVerificationCodeBtn = document.getElementById('sendVerificationCodeBtn');
+  const verificationCodeInput = document.getElementById('verificationCodeInput');
+  const joinButton = document.getElementById('joinButton');
+  const joinForm = document.getElementById('joinForm');
+  const msgBox = document.getElementById('msgBox');
+
+  let isEmailVerified = false;
+
+  sendVerificationCodeBtn.addEventListener('click', function() {
+    const email = emailInput.value;
+    if (!email) {
+      msgBox.innerText = '이메일을 입력해주세요';
+      msgBox.style.color = 'red';
+      return;
+    }
+
+    fetch('/send-verification-code', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email
+      })
+
+    })
+            .then(response => {
+              if (response.ok) {
+                return response.text();
+              } else {
+                // 'rss'를 'response'로 수정!
+                return response.text().then(text => { throw new Error(text) });
+              }
+            })
+            .then(message => {
+              msgBox.innerText = message;
+              msgBox.style.color = 'green';
+              verificationCodeInput.disabled = false;
+              sendVerificationCodeBtn.disabled = true;
+            })
+            .catch(error => {
+              console.error('Error sending verification code:', error);
+              msgBox.innerText = '인증 코드 전송 실패: ' + error.message;
+              msgBox.style.color = 'red';
+            });
+  });
+
+  verificationCodeInput.addEventListener('input', function (){
+    const email = emailInput.value;
+    const verificationCode = verificationCodeInput.value;
+
+    if(verificationCode.length === 6){
+      fetch('/verify-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: email, code: verificationCode })
+      })
+              .then(response =>{
+                if (response.ok){
+                  return response.text();
+                }else {
+                  return response.text().then(text => { throw new Error(text) });
+                }
+                      })
+              .then(message => {
+                msgBox.innerText = message;
+                msgBox.style.color = 'green';
+                isEmailVerified = true;
+                joinButton.disabled = false; // 이메일 인증 완료 시 가입하기 버튼 활성화
+                verificationCodeInput.disabled = true; // 인증 완료 후 수정 불가
+              })
+              .catch(error => {
+                console.error('Error verifying code:', error);
+                msgBox.innerText = '인증 실패: ' + error.message;
+                msgBox.style.color = 'red';
+                isEmailVerified = false;
+                joinButton.disabled = true; // 인증 실패 시 가입하기 버튼 비활성화 유지
+              });
+    } else {
+      isEmailVerified = false;
+      joinButton.disabled = true;
+    }
+  });
+
+  joinForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    if (!isEmailVerified) {
+      msgBox.innerText = '이메일 인증을 먼저 완료해주세요.';
+      msgBox.style.color = 'red';
+      return;
+    }
+
+    const formData = new FormData(e.target);
+    const data = {};
+    for (let [key,value] of formData.entries()){
+      data[key] = value;
+    }
+
+    fetch('/join', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+            .then(rss =>{
+              if (rss.ok){
+                return rss.text();
+              } else{
+                return rss.text().then(text => { throw new Error(text) });
+              }
+            })
+            .then(message => {
+              msgBox.innerText = message;
+              msgBox.style.color = 'green';
+
+              setTimeout(() => {
+                window.location.href = "/main";
+              }, 1000);
+            })
+            .catch(err => {
+              console.error('Fetch Error:', err);
+              msgBox.innerText = '오류발생 : ' + err.message;
+              msgBox.style.color = 'red';
+            });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>IT 뉴스</title>
+  <style>
+    body { background: black; color: white; font-family: Arial, sans-serif; }
+    .item { margin-bottom: 30px; padding: 10px; border-bottom: 1px solid gray; }
+    .item a { color: lightblue; font-size: 20px; font-weight: bold; text-decoration: none; }
+    .item p { margin-top: 5px; font-size: 16px; color: #ccc; }
+  </style>
+</head>
+<body>
+<h1>📡 IT 뉴스 모음</h1>
+<div th:each="item : ${newsList}" class="item">
+  <a th:href="${newsItem.link}">링크</a>
+  <p th:utext="${item.description}">설명</p>
+</div>
+</body>
+</html>
